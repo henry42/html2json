@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<crawler>
+	<dict id="root" uri="http://quotes.fund.163.com/index.html?snv">
+		<item name="data">
+			<list select="//div[@class='downlist']//tr[@code]">
+				<dict>
+					<item name="date" select="td[3]">
+						<val type="text"/>
+					</item>
+					<item name="code" select="td[4]/a" type="text"/>
+					<item name="name" select="td[5]/a" type="text"/>
+					<item name="nav" select="td[6]" type="text"/>
+					<item name="size" select="td[8]" type="text"/>
+					<item name="tnav" select="td[9]" type="text"/>
+					<item name="status" select="td[11]/span" type="text"/>
+					<item name="manager" select="td[12]/span" type="text"/>
+					<incl select="td[4]/a/@href" ref="#detail" type="text"/>
+				</dict>
+			</list>
+		</item>
+	</dict>
+	<dict id="detail" select="//table/tbody">
+		<item name="company" select="tr[3]/td[1]/text()" type="text"/>
+		<item name="type" select="tr[3]/td[2]/text()" type="text"/>
+		<item name="birthday" select="tr[3]/td[3]/text()" type="text"/>
+	</dict>
+</crawler>

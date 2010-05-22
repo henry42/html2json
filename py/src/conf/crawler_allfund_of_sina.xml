@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<crawler>
+	<list id="root" uri="http://biz.finance.sina.com.cn/fundinfo/open/lsjz.php?fund_code=000001" select="//table[@bgcolor='#EEEEEE']//tr[@height][position()>1]">
+		<dict>
+			<item name="date" select="td[2]/a" type="text"/>
+			<item name="nav" select="td[3]/a" type="text"/>
+			<item name="tnav" select="td[4]/a" type="text"/>
+		</dict>
+	</list>
+</crawler>
