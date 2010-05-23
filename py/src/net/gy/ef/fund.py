@@ -145,6 +145,7 @@ def update_all_nav(fundcode=[],start=None,end=datetime.now()):
             log.warn("db:" + warnings);
         conn.commit();
         log.info("done %s %s/%s" % (fc,ind,count));
+	ind = ind + 1;
     
     conn.close();
     log.info('update_all_nav done');

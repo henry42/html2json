@@ -14,5 +14,5 @@ if __name__ == '__main__':
 
 
 #update_fund_info();datetime(2010,1,1)
-update_all_nav(['050001'], None);
+update_all_nav(None, None);
 
