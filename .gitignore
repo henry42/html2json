@@ -3,3 +3,4 @@
 /py/.pydevproject
 /py/.settings
 /py/.project
+/py/src/log/*.log
