@@ -39,8 +39,8 @@ def update_fund_info():
     global SQL_CONN;
     
     crawl = crawler();
-    crawl.setTranslator(xmltranslator());
-    crawl.setCfgFile("crawler_fund_of_163.xml");
+    crawl.settranslator("xml");
+    crawl.setcfgfile("crawler_fund_of_163.xml");
     result = crawl.parse();
     sql4info = '''INSERT INTO fund_info (
         CODE , 
@@ -125,13 +125,13 @@ def update_all_nav(fundcode=[],start=None,end=datetime.now()):
     for fc in fundcode:
         log.info("start %s %s/%s" % (fc,ind,count));
         crawl = crawler();
-        crawl.setTranslator(xmltranslator());
+        crawl.settranslator("xml");
         postdata = fundstart[fc];
         if start is not None:
             postdata['startdate1'] = start.strftime('%Y-%m-%d');
         header = {'Refer':req + fc};
-        crawl.setUri(req + fc,postdata,header);
-        crawl.setCfgFile("crawler_allfund_of_sina.xml");
+        crawl.seturi(req + fc,postdata,header);
+        crawl.setcfgfile("crawler_allfund_of_sina.xml");
         result = crawl.parse();
         log.debug("data %s %s" % (fc,result));
         
@@ -148,6 +148,23 @@ def update_all_nav(fundcode=[],start=None,end=datetime.now()):
 	ind = ind + 1;
     
     conn.close();
+    log.info('update_all_nav done');
+    
+def update_all_nav2(fundcode=['050001'],start=None,end=datetime.now()):
+    
+    log.info('update_all_nav2 start');
+    
+    req = 'http://biz.finance.sina.com.cn/fundinfo/open/lsjz.php?fund_code=';
+    
+
+    for fc in fundcode:
+        crawl = crawler();
+        header = {'Refer':req + fc};
+        crawl.seturi(req + fc,None,header);
+        crawl.setcfgfile("crawler_allfund_of_sina.xml");
+        result = crawl.parse();
+        log.debug("data %s %s" % (fc,result));
+        print result
     log.info('update_all_nav done');
         
     

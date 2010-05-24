@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<crawler>
+	<dict id="root" uri="http://biz.finance.sina.com.cn/fundinfo/open/lsjz.php?fund_code=000001" translator="regex">
+		<item name="data">
+			<list>
+				<select><![CDATA[(?:\s|<[^>]+>)*(\d{4}-\d{2}-\d{2})(?:\s|<[^>]+>)*(\d{4}-\d{2}-\d{2})(?:\s|<[^>]+>)*(-?[\d.]+)(?:\s|<[^>]+>)*(-?[\d.]+)(?:\s|<[^>]+>)*(-?[\d.]+)]]></select>
+				<dict>
+					<item name="date" type="text" repl="{1}"/>
+					<item name="nav" type="text" repl="{2}"/>
+					<item name="tnav" type="text" repl="{3}"/>
+				</dict>
+			</list>
+		</item>
+	</dict>
+</crawler>

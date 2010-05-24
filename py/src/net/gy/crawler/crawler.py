@@ -16,6 +16,7 @@ import uuid;
 import re;
 import time;
 import logging;
+import sys;
 
 
 def _writetologfile(filename,content):
@@ -33,8 +34,14 @@ def _writetologfile(filename,content):
     f.flush();
     f.close();
 
-class crawler(object):
+crawlertype = {};
 
+def regtype(type,cls):
+    global crawlertype;
+    crawlertype[type] = cls;
+
+class crawler(object):
+    
     def __init__(self):
         self.uri = None;
         self.content = None;
@@ -42,19 +49,25 @@ class crawler(object):
         self.uuid = uuid.uuid4();
         self.MAX_URL_OPEN = 3;
         self.result = None;
+        self.tran = None;
         pass;
-    def setCfgElement(self,element,start="root"):
+    
+    def setcfgelement(self,element,start="root"):
         self.cfg = element.xpath("//*[@id='%s']" % start)[0];
         
         uri = self.cfg.get("uri");
         if(uri and self.uri is None and self.content is None):
-            self.setUri(uri);
+            self.seturi(uri);
         
-    def setCfgFile(self,filename,start="root"):
-        self.setCfgElement(ET.parse("conf/" + filename).getroot(),start);
+        t = self.cfg.get("translator");
+        if(t and self.tran is None):
+            self.settranslator(t);
+        
+    def setcfgfile(self,filename,start="root"):
+        self.setcfgelement(ET.parse("conf/" + filename).getroot(),start);
             
         
-    def setUri(self,uri,params=None,headers=None):
+    def seturi(self,uri,params=None,headers=None):
         log.info("loading %s %s" % (uri,params));
         self.uri = uri;
         if(params is not None and type(params) == dict):
@@ -73,15 +86,17 @@ class crawler(object):
                 if i < self.MAX_URL_OPEN:
                     time.sleep(5);
             
-    def setContent(self,content):
+    def setcontent(self,content):
         self.content = content;
         
-    def getConfig(self):
+    def getconfig(self):
         return self.cfg;
     
-    def setTranslator(self , tran):
-        self.tran = tran;
+    def settranslator(self , type="xml"):
+        global crawlertype;
+        self.tran = crawlertype[type]();
         self.tran.crawler = self;
+        self.tran.type = type;
     
     def parse(self):
         self.result = None;
@@ -91,6 +106,9 @@ class crawler(object):
             return;
         if(self.cfg is None):
             log.error("no config file");
+            return;
+        if(self.tran is None):
+            log.error("no translator");
             return;
 
         log.info("parsing");
@@ -152,8 +170,8 @@ class crawler(object):
         if self.result is None:
             self.result = root;
             
-        list = self.tran.select(element,cfg);
-        if(not list):
+        list = self.tran.select(element,cfg,max=1);
+        if not list:
             return None;
         val = list[0];
             
@@ -177,7 +195,7 @@ class crawler(object):
         return root;
     
     def _itemparse(self,element,cfg):
-        sval = self.tran.select(element,cfg);
+        sval = self.tran.select(element,cfg,max=1);
         if cfg.get("type") is not None:
             tfunc = getattr(self.tran,"_" + cfg.get("type"));
             return tfunc(sval,cfg);
@@ -204,10 +222,11 @@ class crawler(object):
 class translator():
     def __init__(self):
         self.crawler = None;
+        self.type = None;
 
     def getroot(self):
         return None;
-    def select(self , val , cfg):
+    def select(self , val , cfg , max = sys.maxint):
         return [];
     def incl(self , cfg , match):
         val = self._data([match], cfg);
@@ -223,12 +242,12 @@ class translator():
             conf = sel[0:hashind];
             
         newT = crawler();
-        newT.setTranslator(self.__class__());
-        newT.setUri(url);
+        newT.settranslator(self.crawler.tran.type);
+        newT.seturi(url);
         if len(conf):
-            newT.setCfgFile(conf,start);
+            newT.setcfgfile(conf,start);
         else:
-            newT.setCfgElement(self.crawler.cfg.getroottree(),start);
+            newT.setcfgelement(self.crawler.cfg.getroottree(),start);
         return newT.parse();
     def spec(self , root , cfg , matches):
         pass;
@@ -258,11 +277,17 @@ class xmltranslator(translator):
 
         _writetologfile(self.crawler.uuid , ET.tostring(root,pretty_print=True, encoding='UTF-8'));
         return root;
-    def select(self , val , cfg):
+    def select(self , val , cfg , max = sys.maxint):
         if(cfg.get("select") is not None):
-            return val.xpath(cfg.get("select"));
+            a =  val.xpath(cfg.get("select"));
         else:
-            return [val];
+            a = [val];
+        if(len(a) > max):
+            return a[:max];
+        else:
+            return a;
+         
+    
     def spec(self , root , cfg , matches):
         pass;
     
@@ -278,3 +303,49 @@ class xmltranslator(translator):
         return join(r);
     def _data(self , matches , cfg):
         return self._text(matches, cfg);
+    
+class regextranslator(translator):
+    def __init__(self):
+        self.crawler = None;
+    def getroot(self):
+        content = self.crawler.content;
+        root = [content];
+        _writetologfile(self.crawler.uuid , content);
+        return root;
+    def select(self , val , cfg , max = sys.maxint):
+        text = cfg.get("select") or cfg.findtext("select");
+        if(text):
+            a = re.findall(text,val[0],re.DOTALL);
+        else:
+            a = [val];
+        if(len(a) > max):
+            return a[:max];
+        else:
+            return a;
+    
+    def spec(self , root , cfg , matches):
+        pass;
+
+    def _text(self , matches , cfg):
+        if len(matches) == 0:
+            return "";
+        else:
+            m = matches[0];
+            repl = cfg.get("repl");
+            
+            def __repl(mo):
+                ind = int(mo.group(1));
+                if len(m) <= ind : 
+                    return m[0];
+                else:
+                    return m[ind];
+            
+            if repl:
+                return re.sub(r"{(\d+)}",__repl,repl);
+            else:
+                return m[0];
+    def _data(self , matches , cfg):
+        return self._text(matches, cfg);
+    
+regtype("xml",xmltranslator);
+regtype("regex",regextranslator);
